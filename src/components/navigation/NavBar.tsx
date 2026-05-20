@@ -12,8 +12,8 @@ import { useAuthStore } from "@/stores/auth-store";
  */
 export default function NavBar() {
   const pathname = usePathname();
-  const getTotalItems = useCartStore((state) => state.getTotalItems);
-  const cartCount = getTotalItems();
+  const items = useCartStore((state) => state.items);
+  const cartCount = items.reduce((total, item) => total + item.quantity, 0);
 
   // Auth state
   const user = useAuthStore((state) => state.user);

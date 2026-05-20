@@ -1,7 +1,18 @@
-import { notFound } from 'next/navigation';
-import type { Metadata } from 'next';
-import PetDetailClient from '@/components/pets/PetDetailClient';
-import { type Pet } from '@/components/pets/types';
+"use client";
+
+import { create } from 'zustand';
+import type { Pet } from '@/components/pets/types';
+
+/**
+ * Pet store state interface
+ */
+interface PetState {
+  pets: Pet[];
+  isLoading: boolean;
+  error: string | null;
+  fetchPets: () => Promise<void>;
+  getPetById: (id: string) => Pet | undefined;
+}
 
 /**
  * Mock pet data - 12 pets with varied species, ages, and prices
@@ -130,65 +141,39 @@ const MOCK_PETS: Pet[] = [
 ];
 
 /**
- * Find pet by ID from mock data
+ * Pet store hook using Zustand
+ * Manages pet data fetching and state
+ * @example
+ * ```typescript
+ * const { pets, isLoading, fetchPets } = usePetStore();
+ * ```
  */
-function findPetById(id: string): Pet | undefined {
-  return MOCK_PETS.find((pet) => pet.id === id);
-}
+export const usePetStore = create<PetState>((set, get) => ({
+  pets: [],
+  isLoading: false,
+  error: null,
 
-/**
- * Generate metadata for SEO
- */
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
-  const { id } = await params;
-  const pet = findPetById(id);
+  /**
+   * Fetches pets from the store (simulates API call)
+   */
+  fetchPets: async () => {
+    set({ isLoading: true, error: null });
+    
+    try {
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      set({ pets: MOCK_PETS, isLoading: false });
+    } catch {
+      set({ error: 'Failed to fetch pets', isLoading: false });
+    }
+  },
 
-  if (!pet) {
-    return {
-      title: 'Pet Not Found | PetShop',
-      description: 'The pet you are looking for does not exist.',
-    };
-  }
-
-  return {
-    title: `${pet.name} | PetShop`,
-    description: `${pet.breed} - ${pet.age} years old, $${pet.price}`,
-  };
-}
-
-/**
- * PetDetailPage - Server component that renders PetDetailClient
- */
-export default async function PetDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const pet = findPetById(id);
-
-  if (!pet) {
-    notFound();
-  }
-
-  const relatedPets = MOCK_PETS
-    .filter((p) => p.species === pet.species && p.id !== pet.id)
-    .slice(0, 3);
-
-  const priceDisplay = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(pet.price);
-
-  return (
-    <PetDetailClient
-      pet={pet}
-      relatedPets={relatedPets}
-      priceDisplay={priceDisplay}
-    />
-  );
-}
+  /**
+   * Gets a pet by ID from the store
+   * @param id - The pet ID to find
+   * @returns The pet if found, undefined otherwise
+   */
+  getPetById: (id: string) => {
+    return get().pets.find((pet) => pet.id === id);
+  },
+}));

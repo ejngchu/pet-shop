@@ -1,7 +1,12 @@
+'use client';
+
 /**
- * Marketing layout - wraps marketing pages (home, about, contact, etc.)
- * Includes Header and Footer components
+ * Marketing layout - wraps marketing pages (home, about, store-info, guarantee)
+ * Includes Header navigation and Footer
  */
+import Header from '@/components/navigation/Header';
+import Footer from '@/components/navigation/Footer';
+
 export default function MarketingLayout({
   children,
 }: {
@@ -9,17 +14,9 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Header will be added in Task 9 */}
-      <header className="border-b">
-        {/* Header/Footer will be added in Task 9 */}
-      </header>
-
+      <Header />
       <main className="flex-1">{children}</main>
-
-      {/* Footer will be added in Task 9 */}
-      <footer className="border-t">
-        {/* Header/Footer will be added in Task 9 */}
-      </footer>
+      <Footer />
     </div>
   );
 }

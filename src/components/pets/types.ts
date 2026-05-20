@@ -45,6 +45,6 @@ export function petToProduct(pet: Pet): {
     name: `${pet.name} (${pet.breed})`,
     price: pet.price,
     image: pet.image,
-    stock: 1,
+    stock: 10,
   };
 }

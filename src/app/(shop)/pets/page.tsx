@@ -1,138 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import PetGrid from '@/components/pets/PetGrid';
 import FilterSidebar from '@/components/pets/FilterSidebar';
-import type { Pet, PetFilters, PetSpecies } from '@/components/pets/types';
-
-/**
- * Mock pet data - 12 pets with varied species, ages, and prices
- */
-const MOCK_PETS: Pet[] = [
-  {
-    id: '1',
-    name: 'Buddy',
-    breed: 'Golden Retriever',
-    age: 3,
-    price: 450,
-    image: '/pet-1.jpg',
-    species: 'dog',
-    description: 'Friendly and energetic Golden Retriever puppy.',
-  },
-  {
-    id: '2',
-    name: 'Whiskers',
-    breed: 'Persian',
-    age: 2,
-    price: 200,
-    image: '/pet-2.jpg',
-    species: 'cat',
-    description: 'Calm and affectionate Persian cat.',
-  },
-  {
-    id: '3',
-    name: 'Tweety',
-    breed: 'Cockatiel',
-    age: 1,
-    price: 80,
-    image: '/pet-3.jpg',
-    species: 'bird',
-    description: 'Playful cockatiel who loves to whistle.',
-  },
-  {
-    id: '4',
-    name: 'Thumper',
-    breed: 'Holland Lop',
-    age: 1,
-    price: 60,
-    image: '/pet-4.jpg',
-    species: 'rabbit',
-    description: 'Sweet and cuddly Holland Lop bunny.',
-  },
-  {
-    id: '5',
-    name: 'Max',
-    breed: 'German Shepherd',
-    age: 5,
-    price: 350,
-    image: '/pet-5.jpg',
-    species: 'dog',
-    description: 'Loyal and protective German Shepherd.',
-  },
-  {
-    id: '6',
-    name: 'Luna',
-    breed: 'Siamese',
-    age: 4,
-    price: 180,
-    image: '/pet-6.jpg',
-    species: 'cat',
-    description: 'Talkative and intelligent Siamese cat.',
-  },
-  {
-    id: '7',
-    name: 'Rio',
-    breed: 'Budgerigar',
-    age: 2,
-    price: 50,
-    image: '/pet-7.jpg',
-    species: 'bird',
-    description: 'Colorful parakeet who loves to sing.',
-  },
-  {
-    id: '8',
-    name: 'Cotton',
-    breed: 'Angora',
-    age: 1,
-    price: 75,
-    image: '/pet-8.jpg',
-    species: 'rabbit',
-    description: 'Fluffy Angora rabbit with soft fur.',
-  },
-  {
-    id: '9',
-    name: 'Rocky',
-    breed: 'Bulldog',
-    age: 7,
-    price: 300,
-    image: '/pet-9.jpg',
-    species: 'dog',
-    description: 'Gentle and lazy Bulldog who loves naps.',
-  },
-  {
-    id: '10',
-    name: 'Mittens',
-    breed: 'Maine Coon',
-    age: 3,
-    price: 250,
-    image: '/pet-10.jpg',
-    species: 'cat',
-    description: 'Majestic Maine Coon with fluffy tail.',
-  },
-  {
-    id: '11',
-    name: 'Sunny',
-    breed: 'Canary',
-    age: 1,
-    price: 70,
-    image: '/pet-11.jpg',
-    species: 'bird',
-    description: 'Beautiful canary with melodic song.',
-  },
-  {
-    id: '12',
-    name: 'Snowball',
-    breed: 'Netherland Dwarf',
-    age: 2,
-    price: 55,
-    image: '/pet-12.jpg',
-    species: 'rabbit',
-    description: 'Tiny and adorable dwarf rabbit.',
-  },
-];
+import { usePetStore } from '@/stores/pet-store';
+import type { PetFilters, PetSpecies } from '@/components/pets/types';
 
 /**
  * Default filter state
@@ -167,16 +43,39 @@ const SPECIES_LABELS: Record<PetSpecies | 'all', string> = {
   rabbit: 'Rabbit',
 };
 
-/**
- * Sort labels for display
- */
-const SORT_LABELS: Record<PetFilters['sortBy'], string> = {
-  'price-asc': 'Price: Low to High',
-  'price-desc': 'Price: High to Low',
-  'name-asc': 'Name: A to Z',
-  'name-desc': 'Name: Z to A',
-  'age-asc': 'Age: Young to Old',
-  'age-desc': 'Age: Old to Young',
+// Animation variants
+const fadeInVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: 'easeOut' as const,
+    },
+  },
+};
+
+const slideInVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.3,
+      ease: 'easeOut' as const,
+    },
+  },
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
 };
 
 /**
@@ -184,6 +83,9 @@ const SORT_LABELS: Record<PetFilters['sortBy'], string> = {
  * Features: Search bar, filter sidebar, active filter badges, loading skeleton, empty state
  */
 export default function PetListPage() {
+  // Zustand stores
+  const { pets: storePets, isLoading: storeLoading, fetchPets } = usePetStore();
+
   // Search state with debounce
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -191,11 +93,26 @@ export default function PetListPage() {
   // Filter and sort state
   const [filters, setFilters] = useState<PetFilters>(DEFAULT_FILTERS);
 
-  // Loading state
-  const [loading, setLoading] = useState(true);
+  // Loading state (combines store loading with filter loading)
+  const [filterLoading, setFilterLoading] = useState(false);
 
   // Mobile filter sidebar visibility
   const [showFilters, setShowFilters] = useState(false);
+
+  // Local loading state (true initially until store loads)
+  const [initialLoad, setInitialLoad] = useState(true);
+
+  // Fetch pets on mount
+  useEffect(() => {
+    const loadPets = async () => {
+      await fetchPets();
+      setInitialLoad(false);
+    };
+    loadPets();
+  }, [fetchPets]);
+
+  // Combined loading state
+  const loading = initialLoad || storeLoading || filterLoading;
 
   // Debounced search (300ms)
   useEffect(() => {
@@ -206,22 +123,12 @@ export default function PetListPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Loading simulation on mount
-  useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   // Handle filter changes
   const handleFiltersChange = useCallback((newFilters: PetFilters) => {
     setFilters(newFilters);
-    setLoading(true);
+    setFilterLoading(true);
     setTimeout(() => {
-      setLoading(false);
+      setFilterLoading(false);
     }, 300);
   }, []);
 
@@ -230,9 +137,9 @@ export default function PetListPage() {
     setFilters(DEFAULT_FILTERS);
     setSearchQuery('');
     setDebouncedSearch('');
-    setLoading(true);
+    setFilterLoading(true);
     setTimeout(() => {
-      setLoading(false);
+      setFilterLoading(false);
     }, 300);
   }, []);
 
@@ -267,9 +174,9 @@ export default function PetListPage() {
     [filters, handleFiltersChange]
   );
 
-  // Filter and sort pets
+  // Filter and sort pets from store
   const filteredPets = useMemo(() => {
-    let result = [...MOCK_PETS];
+    let result = [...storePets];
 
     // Search filter
     if (debouncedSearch) {
@@ -319,7 +226,7 @@ export default function PetListPage() {
     }
 
     return result;
-  }, [debouncedSearch, filters]);
+  }, [storePets, debouncedSearch, filters]);
 
   // Get active filters for display
   const activeFilters = useMemo(() => {
@@ -360,13 +267,24 @@ export default function PetListPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
-        <div className="mb-8">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeInVariants}
+          className="mb-8"
+        >
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Shop All Pets</h1>
           <p className="text-gray-600">Find your new best friend</p>
-        </div>
+        </motion.div>
 
         {/* Search Bar */}
-        <div className="mb-6">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeInVariants}
+          transition={{ delay: 0.1 }}
+          className="mb-6"
+        >
           <Input
             type="text"
             placeholder="Search by name or breed..."
@@ -374,10 +292,16 @@ export default function PetListPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="max-w-md"
           />
-        </div>
+        </motion.div>
 
         {/* Mobile Filter Toggle */}
-        <div className="lg:hidden mb-4">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeInVariants}
+          transition={{ delay: 0.15 }}
+          className="lg:hidden mb-4"
+        >
           <Button
             variant="secondary"
             onClick={() => setShowFilters(!showFilters)}
@@ -385,12 +309,17 @@ export default function PetListPage() {
           >
             {showFilters ? 'Hide Filters' : 'Show Filters'}
           </Button>
-        </div>
+        </motion.div>
 
         {/* Main Content */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Filter Sidebar - Desktop */}
-          <div className="hidden lg:block w-64 flex-shrink-0">
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={slideInVariants}
+            className="hidden lg:block w-64 flex-shrink-0"
+          >
             <div className="sticky top-24">
               <FilterSidebar
                 filters={filters}
@@ -399,99 +328,146 @@ export default function PetListPage() {
                 ageRange={AGE_RANGE}
               />
             </div>
-          </div>
+          </motion.div>
 
           {/* Filter Sidebar - Mobile */}
-          {showFilters && (
-            <div className="lg:hidden mb-4">
-              <FilterSidebar
-                filters={filters}
-                onFiltersChange={handleFiltersChange}
-                priceRange={PRICE_RANGE}
-                ageRange={AGE_RANGE}
-              />
-            </div>
-          )}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                variants={slideInVariants}
+                className="lg:hidden mb-4"
+              >
+                <FilterSidebar
+                  filters={filters}
+                  onFiltersChange={handleFiltersChange}
+                  priceRange={PRICE_RANGE}
+                  ageRange={AGE_RANGE}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Pet Grid Content */}
           <div className="flex-1">
             {/* Results Count */}
-            {!loading && (
-              <p className="text-gray-600 mb-4">
-                Showing {filteredPets.length} pet{filteredPets.length !== 1 ? 's' : ''}
-              </p>
-            )}
+            <AnimatePresence mode="wait">
+              {!loading && (
+                <motion.p
+                  key="results-count"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-gray-600 mb-4"
+                >
+                  Showing {filteredPets.length} pet{filteredPets.length !== 1 ? 's' : ''}
+                </motion.p>
+              )}
+            </AnimatePresence>
 
             {/* Active Filters */}
-            {activeFilters.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                <span className="text-sm text-gray-500">Active filters:</span>
-                {activeFilters.map((filter, index) => (
-                <Badge>
-                    key={`${filter.key}-${index}`}
-                    variant="default"
-                    size="sm"
-                    className="flex items-center gap-1"
-                  >
-                    {filter.value}
-                    <button>
-                      onClick={() => handleRemoveFilter(filter.key)}
-                      className="ml-1 text-sm hover:text-red-500 transition-colors"
-                      aria-label={`Remove ${filter.value} filter`}
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                ))}
-                <button
-                  onClick={handleClearAllFilters}
-                  className="text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
+            <AnimatePresence mode="wait">
+              {activeFilters.length > 0 && (
+                <motion.div
+                  key="active-filters"
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  variants={staggerContainer}
+                  className="flex flex-wrap items-center gap-2 mb-4"
                 >
-                  Clear All
-                </button>
-              </div>
-            )}
+                  <span className="text-sm text-gray-500">Active filters:</span>
+                  {activeFilters.map((filter, index) => (
+                    <motion.div
+                      key={`${filter.key}-${index}`}
+                      variants={fadeInVariants}
+                      className="flex items-center gap-1"
+                    >
+                      <Badge variant="default" size="sm" className="flex items-center gap-1">
+                        {filter.value}
+                      </Badge>
+                      <button
+                        onClick={() => handleRemoveFilter(filter.key)}
+                        className="ml-1 text-sm hover:text-red-500 transition-colors"
+                        aria-label={`Remove ${filter.value} filter`}
+                      >
+                        ×
+                      </button>
+                    </motion.div>
+                  ))}
+                  <button
+                    onClick={handleClearAllFilters}
+                    className="text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
+                  >
+                    Clear All
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Pet Grid */}
-            <PetGrid pets={filteredPets} loading={loading} />
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={staggerContainer}
+              transition={{ delay: 0.2 }}
+            >
+              <PetGrid pets={filteredPets} loading={loading} />
+            </motion.div>
 
             {/* Empty State */}
-            {!loading && filteredPets.length === 0 && hasActiveFilters && (
-              <div className="text-center py-12 bg-white rounded-xl shadow-card">
-                <div className="text-6xl mb-4">🐾</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  No pets found
-                </h3>
-                <p className="text-gray-500 mb-4">
-                  Try adjusting your filters to find more pets
-                </p>
-                <Button variant="secondary" onClick={handleClearAllFilters}>
-                  Clear Filters
-                </Button>
-              </div>
-            )}
+            <AnimatePresence>
+              {!loading && filteredPets.length === 0 && hasActiveFilters && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="text-center py-12 bg-white rounded-xl shadow-card"
+                >
+                  <div className="text-6xl mb-4">🐾</div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    No pets found
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    Try adjusting your filters to find more pets
+                  </p>
+                  <Button variant="secondary" onClick={handleClearAllFilters}>
+                    Clear Filters
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Empty State - No Search Results */}
-            {!loading && filteredPets.length === 0 && !hasActiveFilters && (
-              <div className="text-center py-12 bg-white rounded-xl shadow-card">
-                <div className="text-6xl mb-4">🔍</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  No pets found
-                </h3>
-                <p className="text-gray-500 mb-4">
-                  Try a different search term
-                </p>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setDebouncedSearch('');
-                  }}
+            <AnimatePresence>
+              {!loading && filteredPets.length === 0 && !hasActiveFilters && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="text-center py-12 bg-white rounded-xl shadow-card"
                 >
-                  Clear Search
-                </Button>
-              </div>
-            )}
+                  <div className="text-6xl mb-4">🔍</div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    No pets found
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    Try a different search term
+                  </p>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setDebouncedSearch('');
+                    }}
+                  >
+                    Clear Search
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>

@@ -25,7 +25,7 @@ interface UIState {
  * const { theme, toggleTheme, sidebarOpen } = useUIStore();
  * ```
  */
-export const useUIStore = create<UIState>((set, get) => ({
+export const useUIStore = create<UIState>((set) => ({
   theme: "light",
   sidebarOpen: false,
 

@@ -159,7 +159,7 @@ export default function AboutPage() {
               
               {/* Timeline Events */}
               <div className="space-y-8">
-                {milestones.map((milestone, index) => (
+                {milestones.map((milestone) => (
                   <div key={milestone.year} className="relative flex items-start pl-12">
                     {/* Dot */}
                     <div className="absolute left-2 w-5 h-5 bg-brand-500 rounded-full border-4 border-white" />

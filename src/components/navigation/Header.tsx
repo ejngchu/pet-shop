@@ -11,8 +11,8 @@ import { useAuthStore } from "@/stores/auth-store";
  */
 export default function Header() {
   const pathname = usePathname();
-  const getTotalItems = useCartStore((state) => state.getTotalItems);
-  const cartCount = getTotalItems();
+  const items = useCartStore((state) => state.items);
+  const cartCount = items.reduce((total, item) => total + item.quantity, 0);
 
   // Auth state
   const user = useAuthStore((state) => state.user);
@@ -23,7 +23,7 @@ export default function Header() {
     { href: "/", label: "Home" },
     { href: "/pets", label: "Pets" },
     { href: "/about", label: "About" },
-    { href: "/store", label: "Store" },
+    { href: "/store-info", label: "Store" },
     { href: "/guarantee", label: "Guarantee" },
   ];
 

@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuthStore, type User } from '@/stores/auth-store';
-import { useCartStore, type CartItem, type Product } from '@/stores/cart-store';
+import { useAuthStore } from '@/stores/auth-store';
+import { useCartStore } from '@/stores/cart-store';
 import SlideIn from '@/components/animations/SlideIn';
 import PetImage from '@/components/pets/PetImage';
 import { Button } from '@/components/ui/Button';
@@ -97,9 +97,10 @@ export default function CheckoutPage() {
     }
   }, [isAuthenticated, router]);
   
-  // Pre-fill email from auth store
+  // Pre-fill email from auth store - intentional sync when user becomes available
   useEffect(() => {
     if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData((prev) => ({
         ...prev,
         email: user.email,

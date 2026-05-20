@@ -14,8 +14,6 @@ const nextConfig: NextConfig = {
     // 增加超时时间（默认 30s，改为 60s）
     minimumCacheTTL: 60,
   },
-  // 禁用 Google Fonts 优化（避免超时）
-  optimizeFonts: false,
 };
 
 export default nextConfig;
